@@ -1,5 +1,9 @@
 # singer-best-practices-linter
 
+## Installation
+
+    pip3 install singer-best-practices-linter
+
 ## Usage
 
     singer-best-practices-linter --tap tap-closeio --config config.json
@@ -11,6 +15,7 @@ Currently inspects the following:
 - That a critical log exists in the main function
 - No empty schemas are found in schemas
 - "additionalProperties" key is found in all schemas
+- No schemas have a "type" that is either empty or just "null"
 
 ## TODO
 
