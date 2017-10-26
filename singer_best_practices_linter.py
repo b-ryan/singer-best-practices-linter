@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import subprocess
 import json
 import glob
 from collections import OrderedDict
@@ -48,34 +49,26 @@ def walk_missing_additional_properties(schema):
             yield subschema, path
 
 
-def all_schemas(args):
-    files = glob.glob(args.module + "/schemas/*.json")
-    for fname in files:
-        with open(fname) as f:
-            schema = json.loads(f.read(), object_pairs_hook=OrderedDict)
-        yield fname, schema
-
-
-def additional_properties_handling(args):
-    for fname, schema in all_schemas(args):
+def additional_properties_handling(args, schemas):
+    for tap_stream_id, schema in schemas:
         for subschema, path in walk_missing_additional_properties(schema):
             if args.autofix_additional_properties:
                 subschema["additionalProperties"] = False
             else:
-                warn('"additionalProperties" not found: {} {}', fname, path)
-        if args.autofix_additional_properties:
-            with open(fname) as f:
-                identation = guess_indentation(f)
-            with open(fname, "w") as f:
-                f.write(json.dumps(schema, indent=identation))
-                f.write("\n")
+                warn('"additionalProperties" not found: {} {}', tap_stream_id, path)
+        # if args.autofix_additional_properties:
+        #     with open(fname) as f:
+        #         identation = guess_indentation(f)
+        #     with open(fname, "w") as f:
+        #         f.write(json.dumps(schema, indent=identation))
+        #         f.write("\n")
 
 
-def empty_schemas_handling(args):
-    for fname, schema in all_schemas(args):
+def empty_schemas_handling(args, schemas):
+    for tap_stream_id, schema in schemas:
         for subschema, path in walk_subschemas(schema):
             if subschema == {}:
-                warn("empty schema found: {} {}", fname, path)
+                warn("empty schema found: {} {}", tap_stream_id, path)
 
 
 def check_for_critical_log(mod):
@@ -84,16 +77,28 @@ def check_for_critical_log(mod):
         warn("no critical log found in main function")
 
 
-def main(args):
-    mod = importlib.import_module(args.module)
-    additional_properties_handling(args)
-    empty_schemas_handling(args)
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--tap", required=True)
+    parser.add_argument("--config", "-c", required=True)
+    parser.add_argument("--autofix-additional-properties", action="store_true")
+    return parser.parse_args()
+
+
+def read_schemas(args):
+    out = subprocess.check_output([args.tap, "-c", args.config, "-d"])
+    disc = json.loads(out.decode("utf-8"))
+    return [(s["tap_stream_id"], s["schema"]) for s in disc["streams"]]
+
+
+def main():
+    args = parse_args()
+    mod = importlib.import_module(args.tap.replace("-", "_"))
+    schemas = read_schemas(args)
+    additional_properties_handling(args, schemas)
+    empty_schemas_handling(args, schemas)
     check_for_critical_log(mod)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--module", required=True)
-    parser.add_argument("--autofix-additional-properties", action="store_true")
-    args = parser.parse_args()
-    main(args)
+    main()
