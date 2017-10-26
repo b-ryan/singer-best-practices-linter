@@ -2,7 +2,7 @@
 
 ## Usage
 
-    ./linter.py --module tap_closeio
+    singer-best-practices-linter --tap tap-closeio --config config.json
 
 ## Checks
 

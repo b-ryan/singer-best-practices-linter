@@ -49,26 +49,24 @@ def walk_missing_additional_properties(schema):
             yield subschema, path
 
 
-def additional_properties_handling(args, schemas):
+def additional_properties_check(args, schemas):
     for tap_stream_id, schema in schemas:
         for subschema, path in walk_missing_additional_properties(schema):
-            if args.autofix_additional_properties:
-                subschema["additionalProperties"] = False
-            else:
-                warn('"additionalProperties" not found: {} {}', tap_stream_id, path)
-        # if args.autofix_additional_properties:
-        #     with open(fname) as f:
-        #         identation = guess_indentation(f)
-        #     with open(fname, "w") as f:
-        #         f.write(json.dumps(schema, indent=identation))
-        #         f.write("\n")
+            warn('"additionalProperties" not found: {} {}', tap_stream_id, path)
 
 
-def empty_schemas_handling(args, schemas):
+def empty_schemas_check(args, schemas):
     for tap_stream_id, schema in schemas:
         for subschema, path in walk_subschemas(schema):
             if subschema == {}:
                 warn("empty schema found: {} {}", tap_stream_id, path)
+
+
+def no_typing_check(args, schemas):
+    for tap_stream_id, schema in schemas:
+        for subschema, path in walk_subschemas(schema):
+            if "type" in subschema and normalized_type(subschema) in [[], ["null"]]:
+                warn("empty 'type' found: {} {}", tap_stream_id, path)
 
 
 def check_for_critical_log(mod):
@@ -81,7 +79,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tap", required=True)
     parser.add_argument("--config", "-c", required=True)
-    parser.add_argument("--autofix-additional-properties", action="store_true")
     return parser.parse_args()
 
 
@@ -95,8 +92,9 @@ def main():
     args = parse_args()
     mod = importlib.import_module(args.tap.replace("-", "_"))
     schemas = read_schemas(args)
-    additional_properties_handling(args, schemas)
-    empty_schemas_handling(args, schemas)
+    additional_properties_check(args, schemas)
+    empty_schemas_check(args, schemas)
+    no_typing_check(args, schemas)
     check_for_critical_log(mod)
 
 
