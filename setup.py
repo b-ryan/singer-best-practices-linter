@@ -8,7 +8,7 @@ setup(
     author="Buck Ryan",
     url="https://github.com/b-ryan/singer-best-practices-linter",
     classifiers=["Programming Language :: Python :: 3 :: Only"],
-    py_modules=["linter"],
+    py_modules=["singer_best_practices_linter"],
     entry_points="""
     [console_scripts]
     singer-best-practices-linter=singer_best_practices_linter:main
