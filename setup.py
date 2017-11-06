@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="singer-best-practices-linter",
-    version="0.1.0",
+    version="0.1.1",
     description="Linter for Singer Taps",
     author="Buck Ryan",
     url="https://github.com/b-ryan/singer-best-practices-linter",
